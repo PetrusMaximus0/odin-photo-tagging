@@ -1,7 +1,7 @@
 import App from "./App"
 import Leaderboard from "./components/Leaderboard"
 import Game from "./components/Game"
-import { Navigate } from "react-router-dom"
+import Home from "./components/Home"
 
 export const routes = [
   {
@@ -10,7 +10,7 @@ export const routes = [
     children: [
         {
             path: "/",
-            element: <Navigate to="/play"/>
+            element: <Home/>
         },
         {
             path: "/play",
