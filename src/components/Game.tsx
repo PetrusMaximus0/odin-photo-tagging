@@ -1,21 +1,28 @@
-import gameSpace from "../assets/game_space.jpeg"
+//
+import Timer from "./Timer";
 import Circle from "./Circle";
+//
 import React, { useEffect, useRef, useState } from "react";
+//
+import gameSpace from "../assets/game_space.jpeg"
 import waldoProfile from "../assets/waldo_space.png"
 import yeldoProfile from "../assets/yeldo_space.png"
 import wizzardProfile from "../assets/wizzard_space.png"
+
+const apiURL = import.meta.env.VITE_API_URL;
 
 export default function Game() {
     //
     const imageRef = useRef<null | HTMLElement>(null);
     
     //
-    const solutions = {
-        "yeldo": { x: 0.070, y: 0.69 },
-        "waldo": { x: 0.405, y: 0.625 },
-        "wizzard": { x: 0.780, y: 0.585 },
+    interface ISolutions{
+        yeldo?: {x: number, y: number}, 
+        waldo?: {x: number, y: number}, 
+        wizzard?: {x: number, y: number},
     }
-    //
+
+    const [solutions, setSolutions] = useState<null|ISolutions>(null)
     const [markerPosition, setMarkerPosition] = useState({ x: -1000, y: -1000 });
     const [showMarker, setShowMarker] = useState(false);
     const [markerRelativePosition, setMarkerRelativePosition] = useState({ x: 0, y: 0 });
@@ -24,14 +31,28 @@ export default function Game() {
     const [foundCharacters, setFoundCharacters] = useState({ waldo: false, yeldo: false, wizzard: false });
 
 
-    const isCharacter = (character: string) => {
-        const maxDistance = 0.01;
+    const isCharacter = async (character: string) => {
+        try {
+            const response = await fetch(`${apiURL}/game/verifyClick`, {
+                mode: "cors",
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    character : character,
+                    coordinates : markerRelativePosition,
+                })
+            })
 
-        const distanceX = Math.abs(markerRelativePosition.x - solutions[`${character}`].x);
-        const distanceY = Math.abs(markerRelativePosition.y - solutions[`${character}`].y);
-        const distance = Math.sqrt(Math.pow(distanceX, 2) + Math.pow(distanceY, 2));
-
-        return distance <= maxDistance;
+            const res = await response.json();
+            return res;
+            
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
+        
     }
 
     const setMarker = (e :React.MouseEvent<HTMLElement>) => {
@@ -48,28 +69,36 @@ export default function Game() {
         }
     }
     
-    const handleSelectClick = (e: React.MouseEvent<HTMLElement>, elementName: string) => {
+    const handleSelectClick = async (e: React.MouseEvent<HTMLElement>, elementName: string) => {
         e.stopPropagation();
         if (elementName === "image") {
             setMarker(e);
+        
         } else {
-            const result = isCharacter(elementName);
-            setFoundCharacters({ ...foundCharacters, [`${elementName}`]: result })
+            
+            const response = await isCharacter(elementName);
+            
+            if (response.result === true) {
+                setFoundCharacters({ ...foundCharacters, [`${elementName}`]: true })
+                setSolutions({...solutions, [`${response.character}`]: response.solution})
+            }
             setShowMarker(false);
         }
 
     }
 
-
     useEffect(() => {
+        // Resizing the window adjusts the box locations
         const onResize = () => {
             setShowMarker(false);            
         }
-
         window.addEventListener("resize", onResize);
+        
+        // Clean up function
         return () => {
             window.removeEventListener("resize", onResize);
         }
+
     }, []);
 
     const boxSize = 16;
@@ -94,18 +123,21 @@ export default function Game() {
                     </figure>
                 </li>
             </ul>
+            <div className="text-5xl">
+                <Timer active={true} />
+            </div>
             <figure ref={imageRef} onClick={e => handleSelectClick(e, "image")} className="w-full h-auto border game-image relative">
                 {showMarker && <Circle position={markerPosition} foundCharacters={foundCharacters} handleClick={handleSelectClick} />}
-                {imageRef.current!==null &&
+                {imageRef.current!==null && solutions !== null &&
                     <>
-                        {foundCharacters.waldo &&
+                        {foundCharacters.waldo && solutions.waldo &&
                             <div style={{ top: (solutions.waldo.y * imageRef.current!.offsetHeight - boxSize / 2), left: (solutions.waldo.x * imageRef.current!.offsetWidth - boxSize / 2) }} className={"w-6 h-6 border-2 border-purple-700 bg-opacity-40 bg-purple-900 absolute rounded-xl"}>
                             </div>
                         }
-                        {foundCharacters.wizzard &&
+                        {foundCharacters.wizzard && solutions.wizzard &&
                             <div style={{ top: (solutions.wizzard.y * imageRef.current!.offsetHeight - boxSize / 2), left: (solutions.wizzard.x * imageRef.current!.offsetWidth - boxSize / 2) }} className={"w-6 h-6 border-2 border-purple-700 bg-opacity-40 bg-purple-900 absolute rounded-xl"}>
                             </div>}
-                        {foundCharacters.yeldo &&
+                        {foundCharacters.yeldo && solutions.yeldo &&
                             <div style={{ top: (solutions.yeldo.y* imageRef.current!.offsetHeight - boxSize/2), left: (solutions.yeldo.x*imageRef.current!.offsetWidth - boxSize/2)}} className={"w-6 h-6 border-2 border-purple-700 bg-opacity-40 bg-purple-900 absolute rounded-xl"}>
                             </div>
                         }
