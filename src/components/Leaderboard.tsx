@@ -10,7 +10,7 @@ interface IGameScore{
 
 export default function Leaderboard() {
     const [leaderboards, setLeaderboards] = useState<IGameScore[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
     
     // Fetch the leader boards
@@ -32,17 +32,14 @@ export default function Leaderboard() {
                 
                 const scores = await result.json();
                 setLeaderboards(scores.rankings);
-                console.log(scores);
-
+                setLoading(false);
             } catch (error) {
+                setLoading(false);
                 setError((error as Error))
             }
         }
-                
-        // Execute the functions
-        setLoading(true);
+
         fetchLeaderboards();
-        setLoading(false);
 
     }, []);
 
