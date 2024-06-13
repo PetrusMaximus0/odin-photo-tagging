@@ -4,10 +4,10 @@ import { Link, Outlet } from 'react-router-dom'
 function App() {
 
   return (
-    <>
-      <header>
+    <div className='grid grid-rows-[auto_1fr_auto] gap-10 h-screen'>
+      <header className='py-8 bg-slate-800'>
         <nav>
-          <ul className='flex justify-center gap-8'>
+          <ul className='flex justify-center'>
             <li>
               <Link
                 className='text-5xl hover:bg-slate-700 px-6 min-w-44 py-2 rounded text-white hover:text-orange-500'
@@ -25,16 +25,16 @@ function App() {
           </ul>
         </nav>
       </header>       
-      <main className=' py-12 mt-12'>
+      <main className='px-2'>
         <Outlet/>
       </main>
-      <footer className='text-2xl flex justify-center mt-12 py-12'>
+      <footer className='text-2xl flex justify-center pb-8'>
         <a href="https://github.com/PetrusMaximus0" className='text-white flex gap-2 items-center' target='_empty'>
           Petrus
             <i className="text-3xl devicon-github-original"></i>          
         </a>
       </footer>
-    </>
+    </div>
   )
 }
 
