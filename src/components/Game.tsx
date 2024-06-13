@@ -22,6 +22,20 @@ export default function Game() {
         wizzard?: {x: number, y: number},
     }
 
+    //
+    interface ISession{
+        _id: "string"
+    }
+
+    //
+    interface IScore{
+        _id: "string"
+    }
+    //
+    const [score, setScore] = useState<IScore|null>(null)
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<Error | null>(null);
+    const [session, setSession] = useState<ISession | null>(null);
     const [solutions, setSolutions] = useState<null|ISolutions>(null)
     const [markerPosition, setMarkerPosition] = useState({ x: -1000, y: -1000 });
     const [showMarker, setShowMarker] = useState(false);
@@ -30,7 +44,7 @@ export default function Game() {
     //
     const [foundCharacters, setFoundCharacters] = useState({ waldo: false, yeldo: false, wizzard: false });
 
-
+    //
     const isCharacter = async (character: string) => {
         try {
             const response = await fetch(`${apiURL}/game/verifyClick`, {
@@ -55,6 +69,7 @@ export default function Game() {
         
     }
 
+    //
     const setMarker = (e :React.MouseEvent<HTMLElement>) => {
         const element = e.target as HTMLElement;
 
@@ -68,7 +83,8 @@ export default function Game() {
             setMarkerPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
         }
     }
-    
+       
+    //
     const handleSelectClick = async (e: React.MouseEvent<HTMLElement>, elementName: string) => {
         e.stopPropagation();
         if (elementName === "image") {
@@ -79,14 +95,79 @@ export default function Game() {
             const response = await isCharacter(elementName);
             
             if (response.result === true) {
-                setFoundCharacters({ ...foundCharacters, [`${elementName}`]: true })
+                const newFoundCharacters = {...foundCharacters, [`${elementName}`]: true }
+                setFoundCharacters(newFoundCharacters);
                 setSolutions({...solutions, [`${response.character}`]: response.solution})
+                if (Object.keys(newFoundCharacters).length === 3) {
+                    endGame();
+                }
             }
-            setShowMarker(false);
+            setShowMarker(false);            
         }
 
     }
 
+    //
+    const endGame = async () => {
+        try {
+            
+            const response = await fetch(apiURL + "/game/end-game", {
+                mode: "cors",
+            method: "POST",
+            headers: {
+                "ContentType": "application/json",
+            },
+            body: JSON.stringify({id: session!._id})
+            })
+            
+            if (response.status >= 400) {
+                throw new Error("An error has ocurred while attemping to close end Game");
+            }
+
+            const result = await response.json();
+            if (result.score !== null) {
+                // Handle the score is in the top 10
+                setScore(result._id);
+            } else {
+                // Handle the score is NOT in the top 10
+            }
+            
+        } catch (error) {
+            setError(error as Error);
+        }
+
+
+    }
+
+    // Start a game session
+    useEffect(() => {
+        // When the component is loaded, request a game session start
+        const startGame = async () => {
+            try{
+                const response = await fetch(apiURL + "/session/start-game", {
+                    mode: "cors",
+                    method: "post",
+                    headers: {
+                        "Content-Type": "application/json",
+                    }
+                })
+
+                if (response.status >= 400) {
+                    throw new Error("Game session couldn't start! Please try again.")
+                }
+                
+                const result = await response.json();
+                setSession(result.session);
+                setLoading(false);
+            } catch (error) {
+                setLoading(false);
+                setError(error as Error);
+            }
+        }
+        startGame();        
+    },[])
+
+    // Bind the resizing of the screen
     useEffect(() => {
         // Resizing the window adjusts the box locations
         const onResize = () => {
@@ -100,10 +181,13 @@ export default function Game() {
         }
 
     }, []);
-
+    
+    //
     const boxSize = 16;
 
     return (
+        error && <p> {error.message} </p> ||
+        loading && <p>Loading...</p> ||
         <div className="flex flex-col gap-6">
             <p className="text-2xl"> Find these characters </p>
             <ul className="flex gap-4 justify-center text-xl">
