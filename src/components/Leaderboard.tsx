@@ -5,7 +5,7 @@ const apiURL = import.meta.env.VITE_API_URL;
 interface IGameScore{
     _id: "string",
     username: "string",
-    time: number,
+    totalTime: number,
 }
 
 export default function Leaderboard() {
@@ -29,7 +29,7 @@ export default function Leaderboard() {
                 if (result.status === 404) {
                     throw new Error("Couldn't load the leaderboards");
                 }
-                
+                //
                 const scores = await result.json();
                 setLeaderboards(scores.rankings);
                 setLoading(false);
@@ -72,7 +72,6 @@ export default function Leaderboard() {
 
     return (
         <section className="mx-auto max-w-xl">
-            
             {
                 error && <p> {error.message} </p>
                 ||
@@ -88,17 +87,17 @@ export default function Leaderboard() {
                         </p>            
                         <ol className="flex flex-col gap-2 text-lg font-semibold">
                             {leaderboards.map((score, index) => {
-                                    return (
+                                    return ( index <= 9 && 
                                         <li key={score._id} className={` ${index===0 ? "text-3xl text-yellow-400" : index===1 ? "text-2xl text-gray-400" : index === 2 ? "text-xl text-amber-700" : "" } flex justify-between`}>
                                             {appendCorrectPlaceEnding(index + 1)} - {score.username}
-                                            <span> {printTime(score.time)} </span>
+                                            <span> {printTime(score.totalTime)} </span>
                                         </li>
                                     )
                                     })                   
                             }                                
                             <li className="flex justify-between border-t pt-4 mt-4 text-xl">
                                 Previous Game - {leaderboards[leaderboards.length-1].username}
-                                <span> {printTime(leaderboards[leaderboards.length-1].time)} </span>
+                                <span> {printTime(leaderboards[leaderboards.length-1].totalTime)} </span>
                             </li>
 
                         </ol>
@@ -106,7 +105,6 @@ export default function Leaderboard() {
                 )
                 || <p>No games have been played yet!</p>    
         }
-        
         </section>
     )
 }
