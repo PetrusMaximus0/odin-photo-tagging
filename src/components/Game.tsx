@@ -8,6 +8,8 @@ import gameSpace from "../assets/game_space.jpeg"
 import waldoProfile from "../assets/waldo_space.png"
 import yeldoProfile from "../assets/yeldo_space.png"
 import wizzardProfile from "../assets/wizzard_space.png"
+import { useNavigate } from "react-router-dom";
+import SaveUsername from "./SaveUsername";
 
 const apiURL = import.meta.env.VITE_API_URL;
 
@@ -15,6 +17,9 @@ export default function Game() {
     //
     const imageRef = useRef<null | HTMLElement>(null);
     
+    //
+    const navigate = useNavigate();
+
     //
     interface ISolutions{
         yeldo?: {x: number, y: number}, 
@@ -28,21 +33,20 @@ export default function Game() {
     }
 
     //
-    interface IScore{
-        _id: "string"
-    }
+    const [gameState, setGameState] = useState<"ongoing" | "endTop10" | "end">("ongoing");
+
     //
-    const [score, setScore] = useState<IScore|null>(null)
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
+    //
+    const [score, setScore] = useState<{time: number, id: string}>({time: 0, id: ""});
     const [session, setSession] = useState<ISession | null>(null);
-    const [solutions, setSolutions] = useState<null|ISolutions>(null)
+    const [solutions, setSolutions] = useState<ISolutions | null>(null)
+    const [foundCharacters, setFoundCharacters] = useState({ waldo: false, yeldo: false, wizzard: false });
+    //
     const [markerPosition, setMarkerPosition] = useState({ x: -1000, y: -1000 });
     const [showMarker, setShowMarker] = useState(false);
     const [markerRelativePosition, setMarkerRelativePosition] = useState({ x: 0, y: 0 });
-
-    //
-    const [foundCharacters, setFoundCharacters] = useState({ waldo: false, yeldo: false, wizzard: false });
 
     //
     const isCharacter = async (character: string) => {
@@ -95,12 +99,12 @@ export default function Game() {
             const response = await isCharacter(elementName);
             
             if (response.result === true) {
-                const newFoundCharacters = {...foundCharacters, [`${elementName}`]: true }
+                //
+                const newFoundCharacters = { ...foundCharacters, [`${elementName}`]: true }
                 setFoundCharacters(newFoundCharacters);
-                setSolutions({...solutions, [`${response.character}`]: response.solution})
-                if (Object.keys(newFoundCharacters).length === 3) {
-                    endGame();
-                }
+                //
+                setSolutions({ ...solutions, [`${response.character}`]: response.solution })
+
             }
             setShowMarker(false);            
         }
@@ -108,43 +112,55 @@ export default function Game() {
     }
 
     //
-    const endGame = async () => {
-        try {
-            
-            const response = await fetch(apiURL + "/game/end-game", {
-                mode: "cors",
-            method: "POST",
-            headers: {
-                "ContentType": "application/json",
-            },
-            body: JSON.stringify({id: session!._id})
-            })
-            
-            if (response.status >= 400) {
-                throw new Error("An error has ocurred while attemping to close end Game");
-            }
+    useEffect(() => {
+        //
+        const endGame = async () => {
+            try {
+                const response = await fetch(apiURL + "/session/close", {
+                    mode: "cors",
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({id: session!._id})
+                })
+                
+                if (response.status >= 400) {
+                    throw new Error("An error has ocurred while attemping to close end Game");
+                }
 
-            const result = await response.json();
-            if (result.score !== null) {
-                // Handle the score is in the top 10
-                setScore(result._id);
-            } else {
-                // Handle the score is NOT in the top 10
+                const result = await response.json();
+
+                if (result.score !== null) {
+                    // Handle the score is in the top 10
+                    setGameState("endTop10");
+
+                } else {
+                    // Handle the score is NOT in the top 10
+                    setGameState("end");
+                }
+                setScore({time: result.totalTime, id: result._id});
+                
+            } catch (error) {
+                setError(error as Error);
             }
-            
-        } catch (error) {
-            setError(error as Error);
         }
+        
+        //
+        if (foundCharacters.waldo && foundCharacters.yeldo && foundCharacters.wizzard) {
+            endGame();
+            //navigate("/leaderboard");
 
-
-    }
+        }
+    }, [session, foundCharacters, navigate])
 
     // Start a game session
     useEffect(() => {
         // When the component is loaded, request a game session start
         const startGame = async () => {
-            try{
-                const response = await fetch(apiURL + "/session/start-game", {
+            try {
+                setGameState("ongoing");
+                const response = await fetch(apiURL + "/session/start", {
                     mode: "cors",
                     method: "post",
                     headers: {
@@ -165,7 +181,7 @@ export default function Game() {
             }
         }
         startGame();        
-    },[])
+    }, [])
 
     // Bind the resizing of the screen
     useEffect(() => {
@@ -207,8 +223,13 @@ export default function Game() {
                     </figure>
                 </li>
             </ul>
-            <div className="text-5xl">
-                <Timer active={true} />
+            <div className="text-5xl relative">
+                    {gameState === "ongoing" && <Timer/>
+                        ||
+                        <SaveUsername score={score} handlePlayAgain={() => navigate("/")}/>
+                    }
+
+                    
             </div>
             <figure ref={imageRef} onClick={e => handleSelectClick(e, "image")} className="w-full h-auto border game-image relative">
                 {showMarker && <Circle position={markerPosition} foundCharacters={foundCharacters} handleClick={handleSelectClick} />}
