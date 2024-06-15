@@ -6,6 +6,7 @@ interface IGameScore{
     _id: "string",
     username: "string",
     totalTime: number,
+    lastGame: boolean,
 }
 
 export default function Leaderboard() {
@@ -45,10 +46,10 @@ export default function Leaderboard() {
 
     // Receives time in miliseconds
     const printTime = (time: number) => {
-        const timeInSeconds = Math.trunc(time / 1000);
+        const timeInSeconds = time / 1000;
         const timeMinutes = Math.trunc(timeInSeconds / 60);
-        const timeSecs = Math.trunc(timeInSeconds % 60);
-        return `${timeMinutes}m ${timeSecs}s`
+        const timeSecs = timeInSeconds % 60;
+        return `${timeMinutes}m ${timeSecs.toPrecision(4)}s`
     }
 
     const appendCorrectPlaceEnding = (number: number) =>{
@@ -56,7 +57,7 @@ export default function Leaderboard() {
         const lastNum = numStr[numStr.length - 1];
 
         if (lastNum === "1") {
-            return (`${number}rst`);
+            return (`${number}st`);
         
         } else if (lastNum === "2") {
             return (`${number}nd`);
@@ -95,10 +96,10 @@ export default function Leaderboard() {
                                     )
                                     })                   
                             }                                
-                            <li className="flex justify-between border-t pt-4 mt-4 text-xl">
+                             {leaderboards[leaderboards.length-1].lastGame && <li className="flex justify-between border-t pt-4 mt-4 text-xl">
                                 Previous Game - {leaderboards[leaderboards.length-1].username}
                                 <span> {printTime(leaderboards[leaderboards.length-1].totalTime)} </span>
-                            </li>
+                            </li>}
 
                         </ol>
                     </>
